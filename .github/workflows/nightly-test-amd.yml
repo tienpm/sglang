@@ -1,8 +1,6 @@
 name: Nightly Test (AMD)
 
 on:
-  schedule:
-    - cron: '30 17 * * *'
   push:
     branches:
       - main

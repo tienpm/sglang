@@ -7,9 +7,6 @@ on:
       - '.github/workflows/release-docker-npu-nightly.yml'
       - 'docker/npu.Dockerfile'
   workflow_dispatch:
-  schedule:
-    - cron: "0 16 * * *" # Execute at 0:00 a.m. Beijing Time every day
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true

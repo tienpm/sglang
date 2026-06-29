@@ -1,9 +1,10 @@
 # DFlash ROCm Docker Cookbook
 
-This cookbook builds `docker/dflash.Dockerfile` and starts the SGLang DFlash
-server on AMD GPUs. The target model is mounted from an explicit local
-directory and passed as `MODEL_PATH`; do not point it at the default Hugging
-Face cache.
+This cookbook builds `docker/spec-dec-bench/dflash.Dockerfile` and starts the
+SGLang DFlash server on AMD GPUs. The verification model and DFlash draft model
+are mounted from separate explicit local directories and passed as `MODEL_PATH`
+and `DRAFT_MODEL_PATH`; do not point either one at the default Hugging Face
+cache.
 
 For AMD GPUs, the container receives ROCm device nodes and GPU selection is
 controlled with `HIP_VISIBLE_DEVICES` and `ROCR_VISIBLE_DEVICES`.
@@ -11,14 +12,17 @@ controlled with `HIP_VISIBLE_DEVICES` and `ROCR_VISIBLE_DEVICES`.
 ## Requirements
 
 - ROCm-capable host with Docker access to `/dev/kfd` and `/dev/dri`.
-- A local Qwen model directory that contains `config.json`, tokenizer files,
-  and model weights.
-- `docker/dflash.Dockerfile` in the repository root.
+- A local Qwen verification model directory that contains `config.json`,
+  tokenizer files, and model weights.
+- A local DFlash draft model directory that contains its own `config.json` and
+  draft weights.
+- `docker/spec-dec-bench/dflash.Dockerfile` in the repository root.
 
-Example local model path:
+Example local model paths:
 
 ```bash
-/data/models/Qwen3.5-397B-A17B
+export HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B
+export HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash
 ```
 
 Avoid paths like:
@@ -27,16 +31,38 @@ Avoid paths like:
 ~/.cache/huggingface/hub/...
 ```
 
-## Bootstrap Script
+## Build Image
 
-Use `scripts/my-exps/dflash-container-up.sh` to build `docker/dflash.Dockerfile`
-and start the container. The script requires `HOST_MODEL_PATH`, mounts that
-directory into the container, and passes `MODEL_PATH` to the SGLang server so it
-does not resolve the target model from the default Hugging Face cache.
+Build the image once from the repository root:
 
-By default the script builds the image tag `sglang-dflash:rocm72` before
-running. Set `BUILD_IMAGE=0` to run an image that has already been built.
-`TP_SIZE` is passed into `docker/dflash.Dockerfile` and defaults to `8`.
+```bash
+docker build \
+  -f ./docker/spec-dec-bench/dflash.Dockerfile \
+  -t sglang-dflash:v0.5.14 \
+  .
+```
+
+## Run Container
+
+Use `scripts/spec-dec-bench/dflash-container-up.sh` to start an already-built
+image. The script does not build the image. It requires `HOST_MODEL_PATH` for
+the verification model and `HOST_DRAFT_MODEL_PATH` for the DFlash draft model,
+mounts both directories into the container, and passes `MODEL_PATH` plus
+`DRAFT_MODEL_PATH` to the SGLang server so neither model resolves from the
+default Hugging Face cache.
+
+By default the script runs the image tag `sglang-dflash:v0.5.14`. Override it
+with `IMAGE_NAME` if you built a different tag. `TP_SIZE` is passed into
+`docker/spec-dec-bench/dflash.Dockerfile` and defaults to `8`.
+`MEM_FRACTION_STATIC` is passed to `--mem-fraction-static` and defaults to
+`0.8`.
+
+The Dockerfile uses `--mamba-radix-cache-strategy no_buffer` with
+`--disable-overlap-schedule` on ROCm. Do not switch this to `extra_buffer` on
+AMD GPUs; SGLang currently requires CUDA/MUSA/NPU FLA support for that mode.
+It also sets both `--linear-attn-prefill-backend triton` and
+`--linear-attn-decode-backend triton`. Do not use FlashInfer for the GDN linear
+attention decode backend on ROCm; that path requires CUDA.
 
 ## Launch Examples
 
@@ -44,7 +70,8 @@ Use all visible AMD GPUs:
 
 ```bash
 HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-scripts/my-exps/dflash-container-up.sh
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
 Choose GPUs by ID:
@@ -52,8 +79,10 @@ Choose GPUs by ID:
 ```bash
 GPU_IDS=0,1,2,3,4,5,6,7 \
 TP_SIZE=8 \
+MEM_FRACTION_STATIC=0.8 \
 HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-scripts/my-exps/dflash-container-up.sh
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
 Choose fewer GPUs and match tensor parallelism:
@@ -62,16 +91,18 @@ Choose fewer GPUs and match tensor parallelism:
 GPU_IDS=0,1,2,3 \
 TP_SIZE=4 \
 HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-scripts/my-exps/dflash-container-up.sh
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
-Run an already-built image:
+Run a different image tag:
 
 ```bash
-BUILD_IMAGE=0 \
+IMAGE_NAME=sglang-dflash:dev \
 TP_SIZE=8 \
 HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-scripts/my-exps/dflash-container-up.sh
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
 Selected GPU mode should expose the same number of GPU IDs as `TP_SIZE`. The
@@ -98,6 +129,7 @@ Set common variables on the host:
 
 ```bash
 export HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B
+export HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash
 export SERVED_MODEL=/models/Qwen3.5-397B-A17B
 export BENCH=/Users/tienpham2/Documents/my-exps/inference/InferenceX/utils/bench_serving/benchmark_serving.py
 export PROFILE_DELAY_SEC=5
@@ -110,7 +142,8 @@ Start the DFlash server in one terminal:
 GPU_IDS=0,1,2,3,4,5,6,7 \
 TP_SIZE=8 \
 HOST_MODEL_PATH="${HOST_MODEL_PATH}" \
-scripts/my-exps/dflash-container-up.sh
+HOST_DRAFT_MODEL_PATH="${HOST_DRAFT_MODEL_PATH}" \
+scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
 Start an AMD Perf v3 collection window from another terminal:

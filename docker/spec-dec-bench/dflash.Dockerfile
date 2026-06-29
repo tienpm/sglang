@@ -1,26 +1,29 @@
-FROM lmsysorg/sglang:v0.5.14-rocm72
+FROM lmsysorg/sglang:v0.5.14-rocm720-mi35x
 
-ENV SGLANG_ENABLE_OVERLAP_PLAN_STREAM=1
+ENV SGLANG_ENABLE_OVERLAP_PLAN_STREAM=0
 ENV MODEL_PATH=/models/Qwen3.5-397B-A17B
+ENV DRAFT_MODEL_PATH=/models/Qwen3.5-397B-A17B-DFlash
 ENV TP_SIZE=8
+ENV MEM_FRACTION_STATIC=0.8
 
 EXPOSE 30000
 
-CMD exec python -m sglang.launch_server \
-    --model-path "${MODEL_PATH}" \
+CMD ["sh", "-c", "exec python -m sglang.launch_server \
+    --model-path \"$MODEL_PATH\" \
     --trust-remote-code \
     --speculative-algorithm DFLASH \
-    --speculative-draft-model-path modal-labs/Qwen3.5-397B-A17B-DFlash \
+    --speculative-draft-model-path \"$DRAFT_MODEL_PATH\" \
     --speculative-dflash-block-size 8 \
     --speculative-draft-attention-backend fa4 \
-    --attention-backend trtllm_mha \
+    --attention-backend triton \
     --linear-attn-prefill-backend triton \
-    --linear-attn-decode-backend flashinfer \
-    --mamba-scheduler-strategy extra_buffer \
-    --tp-size "${TP_SIZE}" \
+    --linear-attn-decode-backend triton \
+    --mamba-radix-cache-strategy no_buffer \
+    --disable-overlap-schedule \
+    --tp-size \"$TP_SIZE\" \
     --max-running-requests 32 \
     --cuda-graph-max-bs-decode 32 \
     --cuda-graph-backend-prefill tc_piecewise \
-    --enable-flashinfer-allreduce-fusion \
-    --mem-fraction-static 0.8 \
-    --host 0.0.0.0
+    --flashinfer-allreduce-fusion-backend auto \
+    --mem-fraction-static \"$MEM_FRACTION_STATIC\" \
+    --host 0.0.0.0"]

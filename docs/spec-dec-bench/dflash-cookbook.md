@@ -55,14 +55,18 @@ By default the script runs the image tag `sglang-dflash:v0.5.14`. Override it
 with `IMAGE_NAME` if you built a different tag. `TP_SIZE` is passed into
 `docker/spec-dec-bench/dflash.Dockerfile` and defaults to `8`.
 `MEM_FRACTION_STATIC` is passed to `--mem-fraction-static` and defaults to
-`0.8`.
+`0.8`. `SPECULATIVE_DRAFT_ATTENTION_BACKEND` is passed to
+`--speculative-draft-attention-backend` and defaults to `triton`.
 
 The Dockerfile uses `--mamba-radix-cache-strategy no_buffer` with
 `--disable-overlap-schedule` on ROCm. Do not switch this to `extra_buffer` on
 AMD GPUs; SGLang currently requires CUDA/MUSA/NPU FLA support for that mode.
 It also sets both `--linear-attn-prefill-backend triton` and
 `--linear-attn-decode-backend triton`. Do not use FlashInfer for the GDN linear
-attention decode backend on ROCm; that path requires CUDA.
+attention decode backend on ROCm; that path requires CUDA. Use
+`SPECULATIVE_DRAFT_ATTENTION_BACKEND=triton` for DFlash draft attention on
+ROCm. `fa4` requires the vendored FlashAttention CUTE module
+(`flash_attn.cute`), which is not available in the ROCm image.
 
 ## Launch Examples
 
@@ -80,6 +84,7 @@ Choose GPUs by ID:
 GPU_IDS=0,1,2,3,4,5,6,7 \
 TP_SIZE=8 \
 MEM_FRACTION_STATIC=0.8 \
+SPECULATIVE_DRAFT_ATTENTION_BACKEND=triton \
 HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
 HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
 scripts/spec-dec-bench/dflash-container-up.sh

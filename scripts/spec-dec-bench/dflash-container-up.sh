@@ -17,6 +17,9 @@ Environment variables:
                          Default: 8.
   MEM_FRACTION_STATIC    Static memory fraction passed to sglang.launch_server.
                          Default: 0.8.
+  SPECULATIVE_DRAFT_ATTENTION_BACKEND
+                         Draft model attention backend. Use triton on ROCm.
+                         Default: triton.
   IMAGE_NAME             Already-built Docker image tag to run.
                          Default: sglang-dflash:v0.5.14.
   CONTAINER_NAME         Docker container name.
@@ -41,6 +44,7 @@ CONTAINER_DRAFT_MODEL_PATH="${CONTAINER_DRAFT_MODEL_PATH:-/models/Qwen3.5-397B-A
 GPU_IDS="${GPU_IDS:-all}"
 TP_SIZE="${TP_SIZE:-8}"
 MEM_FRACTION_STATIC="${MEM_FRACTION_STATIC:-0.8}"
+SPECULATIVE_DRAFT_ATTENTION_BACKEND="${SPECULATIVE_DRAFT_ATTENTION_BACKEND:-triton}"
 
 if [[ -z "${HOST_MODEL_PATH:-}" ]]; then
   echo "HOST_MODEL_PATH is required." >&2
@@ -109,6 +113,14 @@ if [[ ! "${MEM_FRACTION_STATIC}" =~ ^([0-9]+([.][0-9]+)?|[.][0-9]+)$ ]]; then
   exit 1
 fi
 
+case "${SPECULATIVE_DRAFT_ATTENTION_BACKEND}" in
+  flashinfer | fa3 | fa4 | triton | ascend) ;;
+  *)
+    echo "SPECULATIVE_DRAFT_ATTENTION_BACKEND must be one of: flashinfer, fa3, fa4, triton, ascend." >&2
+    exit 1
+    ;;
+esac
+
 if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
   echo "Docker image not found locally: ${IMAGE_NAME}" >&2
   echo "Build the image before running this script." >&2
@@ -142,6 +154,7 @@ docker run --rm -it \
   -e "DRAFT_MODEL_PATH=${CONTAINER_DRAFT_MODEL_PATH}" \
   -e "TP_SIZE=${TP_SIZE}" \
   -e "MEM_FRACTION_STATIC=${MEM_FRACTION_STATIC}" \
+  -e "SPECULATIVE_DRAFT_ATTENTION_BACKEND=${SPECULATIVE_DRAFT_ATTENTION_BACKEND}" \
   "${gpu_env[@]}" \
   -v "${HOST_MODEL_PATH}:${CONTAINER_MODEL_PATH}:ro" \
   -v "${HOST_DRAFT_MODEL_PATH}:${CONTAINER_DRAFT_MODEL_PATH}:ro" \

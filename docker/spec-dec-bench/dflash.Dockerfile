@@ -5,6 +5,7 @@ ENV MODEL_PATH=/models/Qwen3.5-397B-A17B
 ENV DRAFT_MODEL_PATH=/models/Qwen3.5-397B-A17B-DFlash
 ENV TP_SIZE=8
 ENV MEM_FRACTION_STATIC=0.8
+ENV SPECULATIVE_DRAFT_ATTENTION_BACKEND=triton
 
 EXPOSE 30000
 
@@ -14,7 +15,7 @@ CMD ["sh", "-c", "exec python -m sglang.launch_server \
     --speculative-algorithm DFLASH \
     --speculative-draft-model-path \"$DRAFT_MODEL_PATH\" \
     --speculative-dflash-block-size 8 \
-    --speculative-draft-attention-backend fa4 \
+    --speculative-draft-attention-backend \"$SPECULATIVE_DRAFT_ATTENTION_BACKEND\" \
     --attention-backend triton \
     --linear-attn-prefill-backend triton \
     --linear-attn-decode-backend triton \

@@ -21,14 +21,29 @@ controlled with `HIP_VISIBLE_DEVICES` and `ROCR_VISIBLE_DEVICES`.
 Example local model paths:
 
 ```bash
-export HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B
-export HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash
+export HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B
+export HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash
 ```
 
 Avoid paths like:
 
 ```bash
 ~/.cache/huggingface/hub/...
+```
+
+## Download Sample Models
+
+Download the verification model and DFlash draft model into explicit local
+directories:
+
+```bash
+mkdir -p /data/models
+
+huggingface-cli download z-lab/Qwen3.6-35B-A3B \
+  --local-dir /data/models/Qwen3.6-35B-A3B
+
+huggingface-cli download z-lab/Qwen3.6-35B-A3B-DFlash \
+  --local-dir /data/models/Qwen3.6-35B-A3B-DFlash
 ```
 
 ## Build Image
@@ -73,8 +88,8 @@ ROCm. `fa4` requires the vendored FlashAttention CUTE module
 Use all visible AMD GPUs:
 
 ```bash
-HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B \
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash \
 scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
@@ -85,8 +100,8 @@ GPU_IDS=0,1,2,3,4,5,6,7 \
 TP_SIZE=8 \
 MEM_FRACTION_STATIC=0.8 \
 SPECULATIVE_DRAFT_ATTENTION_BACKEND=triton \
-HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B \
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash \
 scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
@@ -95,8 +110,8 @@ Choose fewer GPUs and match tensor parallelism:
 ```bash
 GPU_IDS=0,1,2,3 \
 TP_SIZE=4 \
-HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B \
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash \
 scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
@@ -105,8 +120,8 @@ Run a different image tag:
 ```bash
 IMAGE_NAME=sglang-dflash:dev \
 TP_SIZE=8 \
-HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B \
+HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash \
 scripts/spec-dec-bench/dflash-container-up.sh
 ```
 
@@ -133,9 +148,9 @@ docker exec sglang-dflash bash -lc 'command -v rocprofv3 || command -v /opt/rocm
 Set common variables on the host:
 
 ```bash
-export HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B
-export HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash
-export SERVED_MODEL=/models/Qwen3.5-397B-A17B
+export HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B
+export HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash
+export SERVED_MODEL=/models/Qwen3.6-35B-A3B
 export BENCH=/Users/tienpham2/Documents/my-exps/inference/InferenceX/utils/bench_serving/benchmark_serving.py
 export PROFILE_DELAY_SEC=5
 export PROFILE_DURATION_SEC=45

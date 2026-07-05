@@ -4,8 +4,8 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  HOST_MODEL_PATH=/data/models/Qwen3.5-397B-A17B \
-  HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.5-397B-A17B-DFlash \
+  HOST_MODEL_PATH=/data/models/Qwen3.6-35B-A3B \
+  HOST_DRAFT_MODEL_PATH=/data/models/Qwen3.6-35B-A3B-DFlash \
   scripts/spec-dec-bench/dflash-container-up.sh
 
 Environment variables:
@@ -25,10 +25,10 @@ Environment variables:
   CONTAINER_NAME         Docker container name.
                          Default: sglang-dflash.
   CONTAINER_MODEL_PATH   Model path inside the container.
-                         Default: /models/Qwen3.5-397B-A17B.
+                         Default: /models/Qwen3.6-35B-A3B.
   CONTAINER_DRAFT_MODEL_PATH
                          Draft model path inside the container.
-                         Default: /models/Qwen3.5-397B-A17B-DFlash.
+                         Default: /models/Qwen3.6-35B-A3B-DFlash.
 USAGE
 }
 
@@ -39,8 +39,8 @@ fi
 
 IMAGE_NAME="${IMAGE_NAME:-sglang-dflash:v0.5.14}"
 CONTAINER_NAME="${CONTAINER_NAME:-sglang-dflash}"
-CONTAINER_MODEL_PATH="${CONTAINER_MODEL_PATH:-/models/Qwen3.5-397B-A17B}"
-CONTAINER_DRAFT_MODEL_PATH="${CONTAINER_DRAFT_MODEL_PATH:-/models/Qwen3.5-397B-A17B-DFlash}"
+CONTAINER_MODEL_PATH="${CONTAINER_MODEL_PATH:-/models/Qwen3.6-35B-A3B}"
+CONTAINER_DRAFT_MODEL_PATH="${CONTAINER_DRAFT_MODEL_PATH:-/models/Qwen3.6-35B-A3B-DFlash}"
 GPU_IDS="${GPU_IDS:-all}"
 TP_SIZE="${TP_SIZE:-8}"
 MEM_FRACTION_STATIC="${MEM_FRACTION_STATIC:-0.8}"

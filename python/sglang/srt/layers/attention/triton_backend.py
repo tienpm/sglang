@@ -162,14 +162,16 @@ class TritonAttnBackend(AttentionBackend):
         self.num_draft_tokens = model_runner.server_args.speculative_num_draft_tokens
         self.speculative_num_steps = model_runner.server_args.speculative_num_steps
         self.topk = model_runner.server_args.speculative_eagle_topk or 0
+        self.use_mla = model_runner.model_config.attention_arch == AttentionArch.MLA
         # Split-KV verify is bit-equivalent only for a pure-causal chain (topk==1)
-        # and is gfx95-only; else fall back to extend_attention_fwd.
+        # with standard MHA and is gfx95-only. MLA has a different KV layout, so
+        # it must fall back to extend_attention_fwd.
         self.use_verify_splitkv = (
             is_gfx95_supported()
             and envs.SGLANG_ENABLE_SPLITKV_VERIFY.get()
             and self.topk == 1
+            and not self.use_mla
         )
-        self.use_mla = model_runner.model_config.attention_arch == AttentionArch.MLA
         self.dcp_size = get_parallel().attn_dcp_size
         self.dcp_rank = get_parallel().attn_dcp_rank
         self.num_head = (
